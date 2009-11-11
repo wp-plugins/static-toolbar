@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Static Toolbar
-Version: 0.1
+Version: 0.2
 Plugin URI: http://julienappert.com/developpements-wordpress/plugin-static-toolbar
 Author: Julien Appert
 Description: Static Toolbar displays a static toolbar in the bottom of the page, like the facebook's one. The toolbar may contain last posts, rss feed, search engine, social network and sharing links.
@@ -20,14 +20,33 @@ class WPStaticToolbar{
 		add_action('admin_menu', array(&$this,'admin_menu'));
 		register_activation_hook( __FILE__, array(&$this,'activate') );
 
-		$this->networks = array('delicious','digg','facebook','flickr','friendfeed','linkedin','myspace','netvibes','picasa','skype','stumbleupon','technorati','twitter','youtube'); 
+		$this->networks = array(
+			'delicious'			=> 'http://delicious.com/',
+			'digg'				=> 'http://digg.com/users/',
+			'facebook'			=> 'http://www.facebook.com/',
+			'flickr'				=> 'http://www.flickr.com/photos/',
+			'friendfeed'		=> 'http://friendfeed.com/',
+			'linkedin'			=> 'http://www.linkedin.com/in/',
+			'myspace'			=> 'http://www.myspace.com/',
+			'netvibes'			=> ' http://www.netvibes.com/',
+			'picasa'				=> 'http://picasaweb.google.com/',
+			'skype'				=> 'skype:',
+			'stumbleupon'	=> 'http://www.stumbleupon.com/stumbler/',
+			'technorati'		=> 'http://technorati.com/people/',
+			'twitter'				=> 'http://twitter.com/',
+			'youtube'			=> 'http://www.youtube.com/user/'
+		); 
 		$this->sharing = array(
-			'facebook'	=>	'http://www.facebook.com/share.php?u=%URL%&t=%TITLE%',
+			'facebook'	=>	'http://www.facebook.com/share.php?u=%URL%&amp;t=%TITLE%',
 			'twitter'		=>	'http://twitter.com/home?status=%TITLE% - %URL%',
+			'friendfeed'=>	'http://www.friendfeed.com/share?title=%TITLE%&amp;link=%URL%',
+			'netvibes'	=>	'http://www.netvibes.com/share?title=%TITLE%&amp;url=%URL%',
+			'digg'		=>	'http://digg.com/submit/?phase=2&amp;url=%URL%&amp;title=%TITLE%',
+			'technorati'	=>	'http://technorati.com/faves?add=%URL%',
 			'wikio'		=>	'http://www.wikio.fr/vote?url=%URL%',
-			'myspace'		=>	'http://www.myspace.com/Modules/PostTo/Pages/?u=%URL%&t=%TITLE%',
-			'yahoobuzz'	=>	'http://buzz.yahoo.com/submit/?submitUrl=%URL%&submitHeadline=%TITLE%',
-			'email'		=>	'mailto:?subject=%TITLE%&body=%URL%'
+			'myspace'		=>	'http://www.myspace.com/Modules/PostTo/Pages/?u=%URL%&amp;t=%TITLE%',
+			'yahoobuzz'	=>	'http://buzz.yahoo.com/submit/?submitUrl=%URL%&amp;submitHeadline=%TITLE%',
+			'email'		=>	'mailto:?subject=%TITLE%&amp;body=%URL%'
 		);
 	}
 	
@@ -73,6 +92,9 @@ class WPStaticToolbar{
 		}	
 		if(!get_option('statictoolbar_opacity')){
 			add_option('statictoolbar_opacity',90);
+		}	
+		if(!get_option('statictoolbar_nb')){
+			add_option('statictoolbar_nb',5);
 		}			
 	}
 
@@ -92,12 +114,12 @@ class WPStaticToolbar{
 		if(is_admin() && $_SERVER['QUERY_STRING'] == 'page=static-toolbar.php'){
 			?>
 			<style type="text/css">
-			#statictoolbar #social_network input.text{	width:250px;	}
 			#statictoolbar #social_network p,#statictoolbar #colors p{	overflow:hidden;	}
-			#statictoolbar #colors label,#statictoolbar label.likeColor{	width:200px; float:left; line-height:25px;	}
-			#statictoolbar #social_network label{	padding-left:30px; width:150px;  float:left; line-height:25px;}
-			<?php foreach($this->networks as $network){ ?>
-			#social_network label#<?php echo $network; ?>-label{	background:url(<?php bloginfo('wpurl'); ?>/wp-content/plugins/static-toolbar/images/social-network/<?php echo $network; ?>.png) no-repeat left;}
+			#statictoolbar label.general{	width:150px; float:left; line-height:25px;	}
+			#statictoolbar #social_network label{	 width:280px;  float:left; line-height:25px; text-align:right; color:#5B5B5B;}
+			#statictoolbar #social_network input.text{	height:25px; padding-left:30px; width:150px;}
+			<?php foreach($this->networks as $network=>$val){ ?>
+			#social_network input#<?php echo $network; ?>{	background:url(<?php bloginfo('wpurl'); ?>/wp-content/plugins/static-toolbar/images/social-network/<?php echo $network; ?>.png) no-repeat left;}
 			<?php } ?>
 			#statictoolbar .ui-tabs-panel{overflow:hidden;}	
 			#statictoolbar #sharing{	overflow:hidden;}
@@ -169,7 +191,7 @@ class WPStaticToolbar{
 	
 	function adminpage(){
 		if(isset($_POST['statictoolbar-submit'])){
-			foreach($this->networks as $network){
+			foreach($this->networks as $network=>$val){
 				$this->maj_option('statictoolbar_'.$network,$_POST[$network]);
 			}
 			if(count($_POST['share'])>0){
@@ -182,6 +204,7 @@ class WPStaticToolbar{
 					}
 				}			
 			}
+			$this->maj_option('statictoolbar_nb',$_POST['nb']);
 			$this->maj_option('statictoolbar_rss',$_POST['rss']);
 			$this->maj_option('statictoolbar_search',$_POST['search']);
 			$this->maj_option('statictoolbar_opacity',$_POST['opacity']);
@@ -191,7 +214,7 @@ class WPStaticToolbar{
 
 		?>
 		<div class="wrap" id="statictoolbar">
-			<h2><?php  _e("Static bar options","statictoolbar"); ?></h2>
+			<h2><?php  _e("Static toolbar options","statictoolbar"); ?></h2>
 									
 			<form action="" method="post" onsubmit="jQuery('#statictoolbar-tab').val(jQuery('#statictoolbar-tabs').tabs().tabs('option', 'selected')); ">
 				<input type="hidden" name="tab" value="0" id="statictoolbar-tab" />
@@ -214,18 +237,22 @@ class WPStaticToolbar{
 							<label for="search"><?php _e('Show search engine','statictoolbar'); ?></label>
 						</p>	
 						<p>
-							<label for="opacity" class="likeColor"><?php _e('Toolbar opacity','statictoolbar'); ?></label>
+							<label for="opacity" class="general likeColor"><?php _e('Toolbar opacity','statictoolbar'); ?></label>
 							<input type="text" name="opacity" id="opacity"  value="<?php echo get_option('statictoolbar_opacity');  ?>" /> %						
+						</p>	
+						<p>
+							<label for="nb" class="general"><?php _e('Number of posts','statictoolbar'); ?></label>
+							<input type="text" name="nb" id="nb"  value="<?php echo get_option('statictoolbar_nb');  ?>" />				
 						</p>							
 						<div id="colors">
 							<div id="picker" ></div>
 							<h3><?php _e('colors','statictoolbar'); ?></h3>
 							<p>
-								<label for="bgcolor"><?php _e('Background color','statictoolbar'); ?></label>
+								<label for="bgcolor" class="general"><?php _e('Background color','statictoolbar'); ?></label>
 								<input type="text" class="colorwell" id="bgcolor" name="bgcolor" value="<?php echo get_option('statictoolbar_bgcolor'); ?>" />
 							</p>
 							<p>
-								<label for="txtcolor"><?php _e('Text color','statictoolbar'); ?></label>
+								<label for="txtcolor" class="general"><?php _e('Text color','statictoolbar'); ?></label>
 								<input type="text" class="colorwell" id="txtcolor" name="txtcolor" value="<?php echo get_option('statictoolbar_txtcolor'); ?>" />
 							</p>				
 						</div>
@@ -236,10 +263,10 @@ class WPStaticToolbar{
 						<div id="social_network">
 							<h3><?php _e('Social network','statictoolbar'); ?></h3>
 							<?php 
-							foreach($this->networks as $network){ ?>				
+							foreach($this->networks as $network=>$link){ ?>				
 							<p>
-								<label for="<?php echo $network; ?>" id="<?php echo $network; ?>-label"><?php echo $network; ?></label>
-								<input type="text" class="text" name="<?php echo $network; ?>" id="<?php echo $network; ?>" value="<?php echo get_option('statictoolbar_'.$network); ?>" />
+								<label for="<?php echo $network; ?>" id="<?php echo $network; ?>-label"><?php echo $link; ?></label>
+								<input type="text" class="text" name="<?php echo $network; ?>" id="<?php echo $network; ?>" value="<?php echo str_replace($link,'',get_option('statictoolbar_'.$network)); ?>" />
 							</p>
 							<?php } ?>
 						</div>
@@ -323,7 +350,7 @@ class WPStaticToolbar{
 				<?php  } ?>
 				<?php
 				$hasNetwork = false;
-				 foreach($this->networks as $network){
+				 foreach($this->networks as $network=>$val){
 					if(strlen(get_option('statictoolbar_'.$network))>0){	$hasNetwork = true; break;	}
 				}
 				if($hasNetwork){
@@ -333,9 +360,9 @@ class WPStaticToolbar{
 					<div id="static-toolbar-social-network-panel">
 						<p><?php _e('Social Network','statictoolbar'); ?> <span>X</span></p>
 						<div id="static-toolbar-social-network-list">
-							<?php foreach($this->networks as $network){
+							<?php foreach($this->networks as $network=>$link){
 								 if(strlen(get_option('statictoolbar_'.$network))>0){ ?>
-									<a href="<?php echo get_option('statictoolbar_'.$network); ?>" title="<?php _e('follow me on','statictoolbar'); ?> <?php echo $network; ?>"><img src="<?php echo WP_PLUGIN_URL.'/static-toolbar/images/social-network/'.$network.'.png'; ?>" alt="<?php _e('follow me on ','statictoolbar'); ?> <?php echo $network; ?>"/></a>
+									<a href="<?php echo $link.str_replace($link,'',get_option('statictoolbar_'.$network)); ?>" title="<?php _e('follow me on','statictoolbar'); ?> <?php echo $network; ?>"><img src="<?php echo WP_PLUGIN_URL.'/static-toolbar/images/social-network/'.$network.'.png'; ?>" alt="<?php _e('follow me on ','statictoolbar'); ?> <?php echo $network; ?>"/></a>
 								<?php  } 
 							} ?>
 						</div>
@@ -374,7 +401,9 @@ class WPStaticToolbar{
 				<li id="static-toolbar-posts">			
 					<ul>
 					<?php
-					$posts = get_posts('numberposts=5');
+					$nb = get_option('statictoolbar_nb');
+					if(!$nb) $nb = 5;
+					$posts = get_posts('numberposts='.$nb);
 					$i = 0;
 					foreach($posts as $post){
 						$class = ($i==0)	?	' class="entryActive"'	:	'';
