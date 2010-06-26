@@ -3,6 +3,7 @@
 Plugin Name: Static Toolbar
 Version: 0.2
 Plugin URI: http://julienappert.com/developpements-wordpress/plugin-static-toolbar
+Author URI: http://julienappert.com
 Author: Julien Appert
 Description: Static Toolbar displays a static toolbar in the bottom of the page, like the facebook's one. The toolbar may contain last posts, rss feed, search engine, social network and sharing links.
 */
